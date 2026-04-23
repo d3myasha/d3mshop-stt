@@ -1,4 +1,6 @@
-echo -e "Copying Fronend into /var/www/stealthnet..."
+#!/bin/sh
+
+echo -e "Copying Frontend into /var/www/stealthnet..."
 mkdir -p /var/www/stealthnet
 docker compose cp frontend:/dist/. /var/www/stealthnet/ 2>/dev/null || {
   # Fallback: copying from volume
