@@ -3,8 +3,10 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "../db.js";
 
+const BUNDLED_LANGUAGE_CODES = ["en", "fa", "zh-CN"] as const;
+
 const DEFAULTS: Array<[string, string]> = [
-  ["active_languages", "ru,en"],
+  ["active_languages", ["ru", ...BUNDLED_LANGUAGE_CODES].join(",")],
   ["active_currencies", "usd,rub"],
   ["default_referral_percent", "10"],
   ["trial_days", "3"],
@@ -46,27 +48,46 @@ export async function ensureSystemSettings() {
       update: {},
     });
   }
-  await seedEnglishPack();
+  await seedBundledLanguagePacks();
 }
 
-async function seedEnglishPack() {
-  const existing = await prisma.systemSetting.findUnique({ where: { key: "lang_pack_en" } });
+async function seedBundledLanguagePacks() {
+  for (const code of BUNDLED_LANGUAGE_CODES) {
+    await seedLanguagePack(code);
+  }
+}
+
+async function seedLanguagePack(code: string) {
+  const key = `lang_pack_${code}`;
+  const existing = await prisma.systemSetting.findUnique({ where: { key } });
   if (existing) return;
+
   try {
     const dir = dirname(fileURLToPath(import.meta.url));
     const candidates = [
-      resolve(dir, "../i18n/en.json"),
-      resolve(dir, "../../../frontend/src/i18n/locales/en.json"),
+      resolve(dir, `../i18n/${code}.json`),
+      resolve(dir, `../../../frontend/src/i18n/locales/${code}.json`),
     ];
+
     let data: string | null = null;
     for (const p of candidates) {
-      try { data = readFileSync(p, "utf-8"); break; } catch { /* next */ }
+      try {
+        data = readFileSync(p, "utf-8");
+        break;
+      } catch {
+        /* next */
+      }
     }
-    if (!data) { console.warn("[seed] en.json not found, skip"); return; }
+
+    if (!data) {
+      console.warn(`[seed] ${code}.json not found, skip`);
+      return;
+    }
+
     JSON.parse(data);
-    await prisma.systemSetting.create({ data: { key: "lang_pack_en", value: data } });
-    console.log("[seed] English language pack seeded");
+    await prisma.systemSetting.create({ data: { key, value: data } });
+    console.log(`[seed] ${code} language pack seeded`);
   } catch (e) {
-    console.warn("[seed] Could not seed English pack:", e instanceof Error ? e.message : e);
+    console.warn(`[seed] Could not seed ${code} language pack:`, e instanceof Error ? e.message : e);
   }
 }

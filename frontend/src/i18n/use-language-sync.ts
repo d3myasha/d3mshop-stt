@@ -2,6 +2,12 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { loadLanguagePack } from "./init";
 
+function normalizeLanguageCode(code: string | undefined | null): string {
+  if (!code) return "ru";
+  const normalized = code.replace(/_/g, "-");
+  return normalized.toLowerCase() === "zh-cn" ? "zh-CN" : normalized;
+}
+
 export function useLanguageSync(
   preferredLang: string | undefined | null,
   translations?: Record<string, Record<string, unknown>> | null,
@@ -11,13 +17,14 @@ export function useLanguageSync(
   useEffect(() => {
     if (translations) {
       for (const [code, pack] of Object.entries(translations)) {
-        if (code !== "ru") loadLanguagePack(code, pack);
+        const normalizedCode = normalizeLanguageCode(code);
+        if (normalizedCode !== "ru") loadLanguagePack(normalizedCode, pack);
       }
     }
   }, [translations]);
 
   useEffect(() => {
-    const lang = preferredLang || "ru";
+    const lang = normalizeLanguageCode(preferredLang);
     if (i18n.language !== lang) {
       i18n.changeLanguage(lang);
     }
@@ -28,7 +35,7 @@ export function useAdminLanguageSync() {
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    const stored = localStorage.getItem("admin_preferred_lang");
+    const stored = normalizeLanguageCode(localStorage.getItem("admin_preferred_lang"));
     if (stored && i18n.language !== stored) {
       i18n.changeLanguage(stored);
     }
@@ -36,5 +43,5 @@ export function useAdminLanguageSync() {
 }
 
 export function setAdminLanguage(lang: string) {
-  localStorage.setItem("admin_preferred_lang", lang);
+  localStorage.setItem("admin_preferred_lang", normalizeLanguageCode(lang));
 }

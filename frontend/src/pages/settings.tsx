@@ -17,7 +17,7 @@ import { ACCENT_PALETTES } from "@/contexts/theme";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const ALLOWED_LANGS = ["ru", "en"];
+const ALLOWED_LANGS = ["ru", "en", "fa", "zh-CN"];
 const ALLOWED_CURRENCIES = ["usd", "rub"];
 
 const DEFAULT_PLATEGA_METHODS: { id: number; enabled: boolean; label: string }[] = [
