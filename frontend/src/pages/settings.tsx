@@ -1116,7 +1116,7 @@ export function SettingsPage() {
                   <Label>{t("admin.settings.languages")}</Label>
                   <div className="flex flex-wrap gap-2">
                     {(() => {
-                      const preset = ["ru", "en"];
+                      const preset = ALLOWED_LANGS;
                       const defaultLang = (settings.defaultLanguage && preset.includes(settings.defaultLanguage) ? settings.defaultLanguage : preset[0]) ?? "";
                       return preset.map((lang) => {
                         const isActive = settings.activeLanguages.includes(lang);
