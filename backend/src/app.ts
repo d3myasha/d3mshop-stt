@@ -19,6 +19,7 @@ import { cryptopayWebhooksRouter } from "./modules/webhooks/cryptopay.webhooks.r
 import { heleketWebhooksRouter } from "./modules/webhooks/heleket.webhooks.routes.js";
 import { lavaWebhooksRouter } from "./modules/webhooks/lava.webhooks.routes.js";
 import { botAdminRouter } from "./modules/bot-admin/bot-admin.routes.js";
+import { botAdminRouter as botsAdminCrudRouter, botInternalRouter } from "./modules/bot/bot.routes.js";
 import { contestAdminRouter } from "./modules/contest/contest.admin.routes.js";
 import { contestPublicRouter } from "./modules/contest/contest.public.routes.js";
 import { adminReferralsRouter } from "./modules/admin/referrals.routes.js";
@@ -136,7 +137,7 @@ const giftPublicLimiter = rateLimit({
 app.use("/api/gift/public", giftPublicLimiter);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", version: "3.3.2" });
+  res.json({ status: "ok", version: "3.3.3" });
 });
 
 // SSR-рендер index.html с подстановкой имени из брендинга (Telegram preview).
@@ -185,6 +186,8 @@ app.use("/api/public", contestPublicRouter);
 app.use("/api/pay", paymentRedirectRouter);
 app.use("/api/v1", externalApiRouter);
 app.use("/api/bot-admin", botAdminRouter);
+app.use("/api/admin/bots", botsAdminCrudRouter);
+app.use("/api/internal", botInternalRouter);
 app.use("/api/webhooks", remnaWebhooksRouter);
 app.use("/api/webhooks", plategaWebhooksRouter);
 app.use("/api/webhooks", yoomoneyWebhooksRouter);

@@ -60,6 +60,7 @@ export const MANAGER_SECTIONS: { key: string; label: string; category: ManagerSe
   { key: "settings", label: "Настройки", category: "settings" },
   { key: "languages", label: "Языки", category: "settings" },
   { key: "api-keys", label: "API ключи", category: "settings" },
+  { key: "bots", label: "Боты-клоны", category: "settings" },
 ];
 
 /** Вложение тикета. URL относительный — `/api/uploads/tickets/...`. */
@@ -87,6 +88,47 @@ export interface AdminListItem {
   allowedSections: string[];
   mustChangePassword?: boolean;
   createdAt?: string;
+}
+
+/** Наценка клона: суммы по валютам из PAID-платежей (без balance) минус выплаты. */
+export interface AdminBotEarnings {
+  earnedTotal: number;
+  earnedByCurrency: Record<string, number>;
+  paidOutTotal: number;
+  paidOutByCurrency: Record<string, number>;
+  balance: number;
+  balanceByCurrency: Record<string, number>;
+}
+
+export interface AdminBotDto {
+  id: string;
+  /** Маскированный токен (ответ API). */
+  token: string;
+  username: string | null;
+  markupPercent: number;
+  ownerTelegramId: string | null;
+  ownerName: string | null;
+  isActive: boolean;
+  isPrimary: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminBotListItem extends AdminBotDto {
+  clientsCount: number;
+  earnings: AdminBotEarnings;
+}
+
+export interface BotPayoutDto {
+  id: string;
+  botId: string;
+  amount: number;
+  currency: string;
+  comment: string | null;
+  paidAt: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export type ContestPrizeType = "custom" | "balance" | "vpn_days";
@@ -738,6 +780,57 @@ export const api = {
   },
   async deleteApiKey(token: string, id: string): Promise<void> {
     return request(`/admin/api-keys/${id}`, { method: "DELETE", token });
+  },
+
+  async getAdminBots(token: string): Promise<{ items: AdminBotListItem[] }> {
+    return request("/admin/bots", { token });
+  },
+  async getAdminBot(token: string, id: string): Promise<AdminBotListItem> {
+    return request(`/admin/bots/${id}`, { token });
+  },
+  async createAdminBot(
+    token: string,
+    data: {
+      token: string;
+      username?: string;
+      markupPercent?: number;
+      ownerTelegramId?: string;
+      ownerName?: string;
+      notes?: string;
+    },
+  ): Promise<AdminBotDto> {
+    return request("/admin/bots", { method: "POST", body: JSON.stringify(data), token });
+  },
+  async updateAdminBot(
+    token: string,
+    id: string,
+    data: Partial<{
+      token: string;
+      username: string | null;
+      markupPercent: number;
+      ownerTelegramId: string | null;
+      ownerName: string | null;
+      isActive: boolean;
+      notes: string | null;
+    }>,
+  ): Promise<AdminBotDto> {
+    return request(`/admin/bots/${id}`, { method: "PATCH", body: JSON.stringify(data), token });
+  },
+  async deleteAdminBot(token: string, id: string): Promise<{ ok: boolean }> {
+    return request(`/admin/bots/${id}`, { method: "DELETE", token });
+  },
+  async getAdminBotPayouts(token: string, botId: string): Promise<{ items: BotPayoutDto[] }> {
+    return request(`/admin/bots/${botId}/payouts`, { token });
+  },
+  async createAdminBotPayout(
+    token: string,
+    botId: string,
+    data: { amount: number; currency?: string; comment?: string; paidAt?: string },
+  ): Promise<BotPayoutDto> {
+    return request(`/admin/bots/${botId}/payouts`, { method: "POST", body: JSON.stringify(data), token });
+  },
+  async deleteAdminBotPayout(token: string, botId: string, payoutId: string): Promise<{ ok: boolean }> {
+    return request(`/admin/bots/${botId}/payouts/${payoutId}`, { method: "DELETE", token });
   },
 
   async getAdmins(token: string): Promise<AdminListItem[]> {

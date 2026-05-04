@@ -46,6 +46,65 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Боты-клоны: «1:1 копия» основного бота, отличается только Telegram-токеном
+// и наценкой (markupPercent). Витрина (тарифы, бренд, тексты) — общая.
+// База клиентов изолирована: один TG-юзер в каждом клоне = разный Client.
+// Деньги от наценки копятся как долг перед владельцем клона (см. BotPayout).
+// ─────────────────────────────────────────────────────────────────────────────
+model Bot {
+  id              String   @id @default(cuid())
+  /// Telegram Bot API token. Уникальный — один токен = один клон.
+  token           String   @unique
+  /// Username бота без @ (заполняется при первом успешном getMe).
+  username        String?
+  /// Наценка в процентах (0..1000). Применяется к итоговой цене перед скидками.
+  /// Сохраняется snapshot'ом в Payment.botMarkupPercent на момент платежа.
+  markupPercent   Float    @default(0) @map("markup_percent")
+  /// Telegram-ID владельца клона (для отчёта «к выплате»). Может быть null —
+  /// тогда клон считается «платформенным», markup всё равно идёт в отчёт.
+  ownerTelegramId String?  @map("owner_telegram_id")
+  /// Имя/название владельца — отображается в админке.
+  ownerName       String?  @map("owner_name")
+  /// Бот активен — обработчики поднимаются на старте/hot-reload.
+  isActive        Boolean  @default(true) @map("is_active")
+  /// Главный бот инсталляции (создаётся миграцией из исходного BOT_TOKEN).
+  /// Используется как fallback botId для legacy-данных и для broadcast-default.
+  isPrimary       Boolean  @default(false) @map("is_primary")
+  /// Свободные заметки админа.
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  clients  Client[]
+  payments Payment[]
+  payouts  BotPayout[]
+
+  @@index([isActive])
+  @@map("bots")
+}
+
+// Ручная выплата владельцу клона (root-админ → партнёр).
+// Заработано клоном = SUM(payments.botMarkupAmount). К выплате = заработано − SUM(payouts).
+model BotPayout {
+  id        String   @id @default(cuid())
+  botId     String   @map("bot_id")
+  amount    Float
+  currency  String   @default("rub")
+  comment   String?  @db.Text
+  /// Фактическая дата выплаты (может отличаться от createdAt, если задним числом).
+  paidAt    DateTime @default(now()) @map("paid_at")
+  /// Email/id админа, оформившего выплату — для аудита.
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+  @@index([paidAt])
+  @@map("bot_payouts")
+}
+
 model AdminNotificationPreference {
   id                  String   @id @default(cuid())
   telegramId          String   @unique @map("telegram_id")
@@ -72,7 +131,11 @@ model Client {
   balance                    Float     @default(0)
   preferredLang              String    @default("ru") @map("preferred_lang")
   preferredCurrency          String    @default("usd") @map("preferred_currency")
-  telegramId                 String?   @unique @map("telegram_id")
+  /// FK на Bot (клон, через который пользователь зарегистрировался).
+  /// Все legacy-клиенты при миграции получают botId = primary bot.
+  /// Один TG-юзер может быть в нескольких клонах — это РАЗНЫЕ Client (разный balance, история, рефералка).
+  botId                      String    @map("bot_id")
+  telegramId                 String?   @map("telegram_id")
   telegramUsername           String?   @map("telegram_username")
   isBlocked                  Boolean   @default(false) @map("is_blocked")
   blockReason                String?   @map("block_reason")
@@ -125,10 +188,16 @@ model Client {
   ownedSubscriptions    SecondarySubscription[] @relation("OwnerSubscriptions")
   receivedSubscriptions SecondarySubscription[] @relation("ReceivedSubscriptions")
   giftHistory           GiftHistory[]
+  bot                   Bot                     @relation(fields: [botId], references: [id])
 
+  // Один TG-юзер = один Client в каждом клоне (но разные клоны — разные Client).
+  // Email/google/apple/referralCode остаются глобально-уникальными (см. поля выше),
+  // потому что веб-регистрация и cross-bot-логин по email должен находить клиента однозначно.
+  @@unique([botId, telegramId], map: "clients_bot_id_telegram_id_unique")
   @@index([telegramId])
   @@index([email])
   @@index([utmSource])
+  @@index([botId])
   @@map("clients")
 }
 
@@ -220,8 +289,24 @@ model PendingEmailRegistration {
 model Payment {
   id                    String    @id @default(cuid())
   clientId              String    @map("client_id")
+  /// FK на Bot — какому клону принадлежит платёж. Snapshot на момент создания
+  /// (если позже клиента «переселят» в другой бот, этот платёж останется с прежним botId).
+  /// Заполняется при миграции: для legacy-Payment берётся botId из связанного Client.
+  botId                 String?   @map("bot_id")
   orderId               String    @unique @map("order_id")
+  /// Итоговая сумма платежа = baseAmount × (1 + botMarkupPercent/100) − discount.
+  /// Это то, что списывается с баланса/выставляется в платёжном провайдере.
   amount                Float
+  /// Базовая цена БЕЗ наценки клона. Используется реферальным расчётом
+  /// (рефералка считается от базы, наценка не размывается выплатами рефералам).
+  /// Для legacy-Payment = amount (наценки не было).
+  baseAmount            Float?    @map("base_amount")
+  /// Snapshot наценки клона на момент создания платежа (%). Не меняется,
+  /// даже если позже Bot.markupPercent поменяют.
+  botMarkupPercent      Float?    @map("bot_markup_percent")
+  /// Сумма наценки клона = amount − baseAmount (в валюте платежа).
+  /// Для отчёта «заработано клоном за период».
+  botMarkupAmount       Float?    @map("bot_markup_amount")
   currency              String
   status                String    @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
   provider              String? // yookassa, cryptobot, etc.
@@ -238,6 +323,7 @@ model Payment {
   referralDistributedAt DateTime? @map("referral_distributed_at")
 
   client            Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bot               Bot?               @relation(fields: [botId], references: [id], onDelete: SetNull)
   tariff            Tariff?            @relation(fields: [tariffId], references: [id], onDelete: SetNull)
   tariffPriceOption TariffPriceOption? @relation(fields: [tariffPriceOptionId], references: [id], onDelete: SetNull)
   proxyTariff       ProxyTariff?       @relation(fields: [proxyTariffId], references: [id], onDelete: SetNull)
@@ -245,6 +331,7 @@ model Payment {
   referralCredits   ReferralCredit[]
 
   @@index([clientId])
+  @@index([botId])
   @@index([status])
   @@index([tariffId])
   @@index([tariffPriceOptionId])
@@ -807,6 +894,11 @@ model TelegramAuthToken {
   token               String   @unique
   confirmedTelegramId String?  @map("confirmed_telegram_id")
   confirmedUsername   String?  @map("confirmed_username")
+  /// Какой клон-бот подтвердил токен (то есть в каком клоне юзер нажал /start auth_TOKEN).
+  /// Записывается на шаге POST /telegram-login-confirm. Затем GET /telegram-login-check
+  /// использует этот botId при создании/поиске Client. Null = legacy-token до миграции
+  /// или ещё не подтверждён.
+  confirmedBotId      String?  @map("confirmed_bot_id")
   expiresAt           DateTime @map("expires_at")
   createdAt           DateTime @default(now()) @map("created_at")
 

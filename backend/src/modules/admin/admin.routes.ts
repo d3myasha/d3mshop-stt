@@ -9,7 +9,7 @@ import express, { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../../db.js";
+import { prisma, createPayment } from "../../db.js";
 import { requireAuth, requireAdminSection } from "../auth/middleware.js";
 import { hashPassword } from "../auth/auth.service.js";
 import { hashPassword as hashClientPassword } from "../client/client.service.js";
@@ -1206,7 +1206,7 @@ adminRouter.post("/clients/:id/grant-tariff", async (req, res) => {
   if (createPaymentRecord) {
     const orderId = `admin-grant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
-      const payment = await prisma.payment.create({
+      const payment = await createPayment({
         data: {
           clientId,
           orderId,

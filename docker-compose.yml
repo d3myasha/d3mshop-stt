@@ -1,5 +1,5 @@
 ###############################################################################
-#  STEALTHNET 3.3.2 — Docker Compose
+#  STEALTHNET 3.2.7 — Docker Compose
 #  Репозиторий: https://github.com/STEALTHNET-APP/remnawave-STEALTHNET-Bot
 #  Запуск: docker compose up -d
 ###############################################################################
@@ -55,15 +55,13 @@ services:
       - /etc/ssh:/host-etc/ssh
       - /proc:/host-proc:ro
       - uploads_data:/app/uploads
-      # Read-only маунт собранного фронта — нужен для SSR-подстановки бренда
-      # в meta-теги index.html (см. backend/src/modules/branding/spa-html.ts).
+      # Read-only frontend bundle: модуль branding/spa-html.ts читает index.html
+      # отсюда чтобы инжектить per-bot брендинг в SPA-shell перед отдачей через nginx /_spa.
       - frontend_dist:/var/www/stealthnet:ro
     pid: host
     depends_on:
       postgres:
         condition: service_healthy
-      frontend:
-        condition: service_completed_successfully
     networks:
       - stealthnet
 

@@ -30,6 +30,7 @@
       "settings": "Settings",
       "managers": "Managers",
       "api_keys": "API Keys",
+      "clone_bots": "Clone bots",
       "languages": "Languages"
     },
     "marketplace": {

@@ -33,6 +33,7 @@ import { ReferralNetworkPage } from "@/pages/referral-network";
 import { GramadsPromoPage } from "@/pages/gramads-promo";
 import { TrafficAbusePage } from "@/pages/traffic-abuse";
 import { ApiKeysPage } from "@/pages/api-keys";
+import { BotsPage } from "@/pages/bots";
 import { ApiDocsPage } from "@/pages/api-docs";
 import { GeoMapPage } from "@/pages/geo-map";
 import { AdminSecondarySubscriptionsPage } from "@/pages/admin-secondary-subscriptions";
@@ -225,6 +226,7 @@ function AppRoutes() {
         <Route path="referral-network" element={<ForceChangePassword><ReferralNetworkPage /></ForceChangePassword>} />
         <Route path="traffic-abuse" element={<ForceChangePassword><TrafficAbusePage /></ForceChangePassword>} />
         <Route path="api-keys" element={<ForceChangePassword><ApiKeysPage /></ForceChangePassword>} />
+        <Route path="bots" element={<ForceChangePassword><BotsPage /></ForceChangePassword>} />
         <Route path="languages" element={<ForceChangePassword><LanguagesPage /></ForceChangePassword>} />
         <Route path="api-docs" element={<ForceChangePassword><ApiDocsPage /></ForceChangePassword>} />
         <Route path="geo-map" element={<ForceChangePassword><GeoMapPage /></ForceChangePassword>} />

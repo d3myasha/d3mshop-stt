@@ -48,6 +48,61 @@ export async function ensureSystemSettings() {
   }
   await seedEnglishPack();
   await seedMarketplaceCategories();
+  await ensurePrimaryBot();
+}
+
+/**
+ * Гарантирует существование primary бота и синхронизирует его токен.
+ *
+ * Сценарии:
+ *   1) Свежая инсталляция: миграция создала primary с placeholder-токеном —
+ *      перезаписываем настоящим из env.BOT_TOKEN или system_settings.telegram_bot_token.
+ *   2) Существующий пользователь после миграции: primary создан с токеном из
+ *      system_settings, всё уже корректно — обновлять не нужно.
+ *   3) Token сменили в .env: НЕ перезаписываем автоматически (могут быть
+ *      клиенты привязанные к старому токену через webhook). Только если placeholder.
+ */
+async function ensurePrimaryBot() {
+  try {
+    const envToken = (process.env.BOT_TOKEN ?? "").trim();
+    const settingRow = await prisma.systemSetting.findUnique({
+      where: { key: "telegram_bot_token" },
+    });
+    const settingToken = (settingRow?.value ?? "").trim();
+    const desiredToken = envToken || settingToken;
+
+    let primary = await prisma.bot.findFirst({ where: { isPrimary: true } });
+
+    if (!primary) {
+      // Бот мог быть удалён вручную — пересоздаём.
+      if (!desiredToken) {
+        console.warn("[seed] primary bot missing and no BOT_TOKEN set — skipping");
+        return;
+      }
+      primary = await prisma.bot.create({
+        data: {
+          token: desiredToken,
+          markupPercent: 0,
+          isActive: true,
+          isPrimary: true,
+          ownerName: "Основной (платформа)",
+        },
+      });
+      console.log("[seed] primary bot created");
+      return;
+    }
+
+    // Если токен placeholder_* — заменяем настоящим (свежая установка).
+    if (primary.token.startsWith("placeholder_") && desiredToken) {
+      await prisma.bot.update({
+        where: { id: primary.id },
+        data: { token: desiredToken, isActive: true },
+      });
+      console.log("[seed] primary bot token initialized from env");
+    }
+  } catch (e) {
+    console.warn("[seed] ensurePrimaryBot skip:", e instanceof Error ? e.message : e);
+  }
 }
 
 const MARKETPLACE_CATEGORIES: Array<{

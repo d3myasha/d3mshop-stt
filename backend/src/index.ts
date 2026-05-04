@@ -26,7 +26,7 @@ async function main() {
   startMarketplaceScheduler();
 
   const server = app.listen(env.PORT, "0.0.0.0", () => {
-    console.log(`API v3.3.2 listening on port ${env.PORT}`);
+    console.log(`API v3.3.3 listening on port ${env.PORT}`);
   });
 
   const shutdown = async () => {
