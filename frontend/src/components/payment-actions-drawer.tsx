@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2, AlertTriangle, RotateCw, Ban, Receipt, RefreshCw, ArrowUpRight, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,12 +140,15 @@ export function PaymentActionsDrawer({ paymentId, onClose, onRefreshList }: Prop
   const isRefunded = p?.status === "REFUNDED";
   const isFailed = p?.status === "FAILED";
 
-  return (
+  // Drawer рендерится через portal в document.body — иначе попадает в stacking
+  // context <main className="relative z-10">, и его z-[81] не выходит выше z-[70]
+  // топбара/сайдбара, оказываясь визуально под ними.
+  return createPortal(
     <>
-      <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <aside
         className={cn(
-          "fixed right-0 top-0 z-[61] h-screen w-full sm:w-[480px] max-w-full overflow-y-auto",
+          "fixed right-0 top-0 z-[81] h-screen w-full sm:w-[480px] max-w-full overflow-y-auto",
           "bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-2xl border-l border-white/40 dark:border-white/10",
           "shadow-2xl flex flex-col"
         )}
@@ -386,6 +390,7 @@ export function PaymentActionsDrawer({ paymentId, onClose, onRefreshList }: Prop
           ) : null}
         </div>
       </aside>
-    </>
+    </>,
+    document.body
   );
 }

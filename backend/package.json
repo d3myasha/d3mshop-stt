@@ -1,7 +1,7 @@
 {
   "name": "stealthnet-api",
-  "version": "4.0.0",
-  "description": "STEALTHNET 4.0.0 — модульный Web API",
+  "version": "4.1.0",
+  "description": "STEALTHNET 4.1.0 — модульный Web API",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

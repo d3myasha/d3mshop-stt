@@ -159,7 +159,7 @@ const giftPublicLimiter = rateLimit({
 app.use("/api/gift/public", giftPublicLimiter);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", version: "4.0.0" });
+  res.json({ status: "ok", version: "4.1.0" });
 });
 
 // SSR-рендер index.html с подстановкой имени из брендинга (Telegram preview).

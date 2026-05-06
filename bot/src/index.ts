@@ -1,5 +1,5 @@
 /**
- * STEALTHNET 4.0.0 — Telegram-бот
+ * STEALTHNET 4.1.0 — Telegram-бот
  * Полный функционал кабинета: главная, тарифы, профиль, пополнение, триал, реферальная ссылка, VPN.
  * Цветные кнопки: style primary / success / danger (Telegram Bot API).
  */
