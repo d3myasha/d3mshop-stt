@@ -622,7 +622,7 @@ export async function postBotAdminBroadcast(
   photoFileId?: string,
   buttonText?: string,
   buttonUrl?: string,
-  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[]
+  entities?: { type: string; offset: number; length: number; url?: string; language?: string; custom_emoji_id?: string }[]
 ): Promise<{ ok: boolean; sentTelegram: number; sentEmail: number; failedTelegram: number; failedEmail: number; errors: string[] }> {
   const botToken = process.env.BOT_TOKEN || "";
   const res = await fetch(`${API_URL}${BOT_ADMIN_BASE}/broadcast`, {
