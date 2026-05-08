@@ -10,6 +10,12 @@ if (!API_URL) {
 function getHeaders(token?: string): HeadersInit {
   const h: Record<string, string> = { "Content-Type": "application/json" };
   if (token) h["Authorization"] = `Bearer ${token}`;
+  // Идентифицируем все вызовы из бота через X-Telegram-Bot-Token, чтобы:
+  // 1) бэкенд знал какому клону принадлежит запрос (resolveBotForClientRequest)
+  // 2) IP-rate-limit'ы пропускали бот-трафик (skip-условие в app.ts).
+  // Без этого заголовка все регистрации через /start блокируются по IP бот-контейнера.
+  const botToken = process.env.BOT_TOKEN || "";
+  if (botToken) h["X-Telegram-Bot-Token"] = botToken;
   return h;
 }
 

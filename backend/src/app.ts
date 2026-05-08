@@ -159,15 +159,35 @@ const authStrictLimiter = rateLimit({
 app.use("/api/auth/login", authStrictLimiter);
 app.use("/api/auth/2fa-login", authStrictLimiter);
 
-// Клиент: регистрация — 10/час/IP. NAT'ы не страдают,
-// потому что регистрация — редкое событие (1-2 раза в жизни клиента),
-// а большинство приходит через Telegram-miniapp (отдельный лимитер).
+// Клиент: регистрация — 5/мин/IP с откатом 60 секунд.
+// ВАЖНО: запросы от Telegram-бота пропускаются (skip): бот стучится в API
+// от своего IP и без skip все регистрации через /start блокируются —
+// все клиенты выглядят как «один IP» для лимитера. Telegram сам по себе
+// антибот-щит (нужен аккаунт + подписка), доверяем X-Telegram-Bot-Token header.
 const clientRegisterLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: dev ? 500 : 10,
-  message: { message: "Слишком много регистраций с этого IP. Попробуйте позже." },
+  windowMs: 60 * 1000, // 60 секунд
+  max: dev ? 500 : 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Если в заголовке есть наш bot-token — пропускаем лимит.
+    // Валидность токена проверяется дальше в /register самим хэндлером.
+    const t = req.headers["x-telegram-bot-token"];
+    return typeof t === "string" && t.length > 10;
+  },
+  handler: (req, res) => {
+    // express-rate-limit складывает время сброса в req.rateLimit.resetTime
+    type RL = { resetTime?: Date };
+    const rl = (req as unknown as { rateLimit?: RL }).rateLimit;
+    const resetAt = rl?.resetTime instanceof Date ? rl.resetTime.getTime() : Date.now() + 60_000;
+    const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
+    res.setHeader("Retry-After", retryAfter);
+    res.status(429).json({
+      message: `Слишком много регистраций с этого IP. Попробуйте через ${retryAfter} сек.`,
+      retryAfter,
+      resetAt: new Date(resetAt).toISOString(),
+    });
+  },
 });
 app.use("/api/client/auth/register", clientRegisterLimiter);
 

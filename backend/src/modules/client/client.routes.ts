@@ -165,16 +165,35 @@ clientAuthRouter.post("/register", async (req, res) => {
     }
 
     // ——— Антибот-защита: лимит регистраций с одного IP ———
+    // Окно 60 секунд. Запросы от Telegram-бота (X-Telegram-Bot-Token) пропускаем —
+    // иначе все регистрации через /start блокируются (бот стучится от одного IP).
     const clientIp = getRequestIp(req);
-    if (clientIp && config.signupProtectionEnabled !== false) {
-      const since = new Date(Date.now() - 60 * 60 * 1000); // 1 час
+    const isFromBot = typeof req.headers["x-telegram-bot-token"] === "string"
+      && (req.headers["x-telegram-bot-token"] as string).length > 10;
+    if (clientIp && !isFromBot && config.signupProtectionEnabled !== false) {
+      const WINDOW_MS = 60_000; // 60 секунд
+      const since = new Date(Date.now() - WINDOW_MS);
       const recentFromIp = await prisma.client.count({
         where: { registrationIp: clientIp, createdAt: { gte: since } },
       });
-      const maxPerIp = config.signupMaxPerIpPerHour ?? 3;
-      if (recentFromIp >= maxPerIp) {
+      // Историческое имя поля — 'PerHour', но фактически это лимит на текущее окно (60 сек).
+      const maxPerWindow = config.signupMaxPerIpPerHour ?? 3;
+      if (recentFromIp >= maxPerWindow) {
+        // Считаем когда самая старая регистрация в окне выйдет → resetAt
+        const oldest = await prisma.client.findFirst({
+          where: { registrationIp: clientIp, createdAt: { gte: since } },
+          orderBy: { createdAt: "asc" },
+          select: { createdAt: true },
+        });
+        const resetAt = oldest?.createdAt
+          ? oldest.createdAt.getTime() + WINDOW_MS
+          : Date.now() + WINDOW_MS;
+        const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
+        res.setHeader("Retry-After", retryAfter);
         return res.status(429).json({
-          message: "Слишком много регистраций с этого адреса. Попробуйте позже.",
+          message: `Слишком много регистраций с этого IP. Попробуйте через ${retryAfter} сек.`,
+          retryAfter,
+          resetAt: new Date(resetAt).toISOString(),
         });
       }
     }
