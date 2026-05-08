@@ -422,7 +422,8 @@ const lastAdminSearch = new Map<number, string>();
 const awaitingAdminBalance = new Map<number, string>();
 // Админ: рассылка — ожидаем текст или фото+подпись, затем канал
 const awaitingBroadcastMessage = new Set<number>();
-type BroadcastPayload = { text: string; photoFileId?: string; buttonText?: string; buttonUrl?: string; entities?: CustomEmojiEntity[] };
+type TelegramMessageEntity = { type: string; offset: number; length: number; url?: string; language?: string; custom_emoji_id?: string };
+type BroadcastPayload = { text: string; photoFileId?: string; buttonText?: string; buttonUrl?: string; entities?: TelegramMessageEntity[] };
 const lastBroadcastMessage = new Map<number, string | BroadcastPayload>();
 // Админ: сквады — список для добавления/удаления (clientId + items с uuid/name)
 const lastSquadsForAdd = new Map<number, { clientId: string; items: { uuid: string; name: string }[] }>();
@@ -4025,8 +4026,8 @@ composer.on("message:photo", async (ctx) => {
   const buttonText = btnMatch?.[1];
   const buttonUrl = btnMatch?.[2];
   const cleanCaption = btnMatch ? caption.replace(btnMatch[0], "").trim() : caption;
-  const customEntities = (ctx.message.caption_entities ?? []).filter((e): e is { type: "custom_emoji"; offset: number; length: number; custom_emoji_id: string } => e.type === "custom_emoji");
-  lastBroadcastMessage.set(userId, { text: cleanCaption || caption, photoFileId: largest.file_id, buttonText, buttonUrl, entities: customEntities.length ? customEntities : undefined });
+  const msgEntities: TelegramMessageEntity[] = (ctx.message.caption_entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+  lastBroadcastMessage.set(userId, { text: cleanCaption || caption, photoFileId: largest.file_id, buttonText, buttonUrl, entities: msgEntities.length ? msgEntities : undefined });
   await ctx.reply("Кому отправить?", {
     reply_markup: {
       inline_keyboard: [
@@ -4065,8 +4066,8 @@ composer.on("message:text", async (ctx) => {
     const buttonText = btnMatch?.[1];
     const buttonUrl = btnMatch?.[2];
     const cleanText = btnMatch ? text.replace(btnMatch[0], "").trim() : text;
-    const customEntities = (ctx.message.entities ?? []).filter((e): e is { type: "custom_emoji"; offset: number; length: number; custom_emoji_id: string } => e.type === "custom_emoji");
-    lastBroadcastMessage.set(userId, { text: cleanText || text, buttonText, buttonUrl, entities: customEntities.length ? customEntities : undefined });
+    const msgEntities: TelegramMessageEntity[] = (ctx.message.entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+    lastBroadcastMessage.set(userId, { text: cleanText || text, buttonText, buttonUrl, entities: msgEntities.length ? msgEntities : undefined });
     await ctx.reply("Кому отправить?", {
       reply_markup: {
         inline_keyboard: [
