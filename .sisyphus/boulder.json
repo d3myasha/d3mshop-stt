@@ -1,0 +1,33 @@
+{
+  "active_plan": "/home/d3myasha/projects/d3mshop-stt/.sisyphus/plans/broadcast-premium-emoji.md",
+  "started_at": "2026-05-05T12:40:23.764Z",
+  "session_ids": [
+    "ses_2090b465affeuP63nUkZ90jEAq",
+    "ses_207761b0fffeMj1bXwMxGjs4vG",
+    "ses_20775eaf1ffeVQ1Rc3T4JEgaeA",
+    "ses_20775cbd1ffesd6p9kgRVveH1I",
+    "ses_20775adbcffelnLCdk3dzy63CH",
+    "ses_207757860ffeHqVsJUp9h9e2xu",
+    "ses_207542d99ffeHu39s9RriWSNuS",
+    "ses_20753e960ffe2rRVU04muJyB93",
+    "ses_2075344d9ffe7WnEG2sA7eeObD",
+    "ses_207531d68fferFk04x2xtnOVcL",
+    "ses_20752e400ffe2p8gM2NRwsRR77"
+  ],
+  "session_origins": {
+    "ses_2090b465affeuP63nUkZ90jEAq": "direct",
+    "ses_207761b0fffeMj1bXwMxGjs4vG": "appended",
+    "ses_20775eaf1ffeVQ1Rc3T4JEgaeA": "appended",
+    "ses_20775cbd1ffesd6p9kgRVveH1I": "appended",
+    "ses_20775adbcffelnLCdk3dzy63CH": "appended",
+    "ses_207757860ffeHqVsJUp9h9e2xu": "appended",
+    "ses_207542d99ffeHu39s9RriWSNuS": "appended",
+    "ses_20753e960ffe2rRVU04muJyB93": "appended",
+    "ses_2075344d9ffe7WnEG2sA7eeObD": "appended",
+    "ses_207531d68fferFk04x2xtnOVcL": "appended",
+    "ses_20752e400ffe2p8gM2NRwsRR77": "appended"
+  },
+  "plan_name": "broadcast-premium-emoji",
+  "agent": "atlas",
+  "task_sessions": {}
+}

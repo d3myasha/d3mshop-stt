@@ -68,6 +68,7 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
     if (entities?.length) payload.entities = entities;
     else payload.parse_mode = "HTML";
     if (replyMarkup) payload.reply_markup = replyMarkup;
+    console.log("[broadcast] sendMessage payload:", JSON.stringify({ text: text.slice(0, 200), entities, parse_mode: payload.parse_mode }));
     const proxy = await getProxyUrl("telegram");
     const res = await proxyFetch(url, {
       method: "POST",
@@ -106,6 +107,7 @@ async function sendTelegramPhoto(
       if (entities?.length) form.append("caption_entities", JSON.stringify(entities));
       else form.append("parse_mode", "HTML");
     }
+    console.log("[broadcast] sendPhoto payload:", JSON.stringify({ caption: caption.slice(0, 200), caption_entities: entities }));
     if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup));
     const proxy = await getProxyUrl("telegram");
     const res = await proxyFetch(url, { method: "POST", body: form }, proxy);
