@@ -4020,14 +4020,15 @@ composer.on("message:photo", async (ctx) => {
     return;
   }
   const largest = photos[photos.length - 1];
-  const caption = ctx.message.caption?.trim() ?? "";
-  // Парсим кнопку вида [Текст кнопки](URL) из подписи
+  const rawCaption = ctx.message.caption ?? "";
+  const caption = rawCaption.trim();
+  const msgEntities: TelegramMessageEntity[] = (ctx.message.caption_entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
   const btnMatch = caption.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
   const buttonText = btnMatch?.[1];
   const buttonUrl = btnMatch?.[2];
   const cleanCaption = btnMatch ? caption.replace(btnMatch[0], "").trim() : caption;
-  const msgEntities: TelegramMessageEntity[] = (ctx.message.caption_entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
-  lastBroadcastMessage.set(userId, { text: cleanCaption || caption, photoFileId: largest.file_id, buttonText, buttonUrl, entities: msgEntities.length ? msgEntities : undefined });
+  const hasEntities = msgEntities.length > 0;
+  lastBroadcastMessage.set(userId, { text: hasEntities ? rawCaption : (cleanCaption || caption), photoFileId: largest.file_id, buttonText, buttonUrl, entities: hasEntities ? msgEntities : undefined });
   await ctx.reply("Кому отправить?", {
     reply_markup: {
       inline_keyboard: [
@@ -4056,18 +4057,19 @@ composer.on("message:text", async (ctx) => {
       await ctx.reply("Доступ запрещён.");
       return;
     }
-    const text = ctx.message.text?.trim() ?? "";
+    const rawText = ctx.message.text ?? "";
+    const text = rawText.trim();
     if (!text) {
       await ctx.reply("Введите непустой текст сообщения.");
       return;
     }
-    // Парсим кнопку вида [Текст кнопки](URL) из текста
+    const msgEntities: TelegramMessageEntity[] = (ctx.message.entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
     const btnMatch = text.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
     const buttonText = btnMatch?.[1];
     const buttonUrl = btnMatch?.[2];
     const cleanText = btnMatch ? text.replace(btnMatch[0], "").trim() : text;
-    const msgEntities: TelegramMessageEntity[] = (ctx.message.entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
-    lastBroadcastMessage.set(userId, { text: cleanText || text, buttonText, buttonUrl, entities: msgEntities.length ? msgEntities : undefined });
+    const hasEntities = msgEntities.length > 0;
+    lastBroadcastMessage.set(userId, { text: hasEntities ? rawText : (cleanText || text), buttonText, buttonUrl, entities: hasEntities ? msgEntities : undefined });
     await ctx.reply("Кому отправить?", {
       reply_markup: {
         inline_keyboard: [
