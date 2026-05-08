@@ -572,7 +572,7 @@ botAdminRouter.post("/broadcast", async (req, res) => {
   const result = await runBroadcast({
     channel,
     subject: "",
-    message: message.trim(),
+    message: entities?.length ? message : message.trim(),
     attachment,
     buttonText,
     buttonUrl,
