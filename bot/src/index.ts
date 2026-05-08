@@ -3289,15 +3289,13 @@ composer.on("callback_query:data", async (ctx) => {
           );
           return;
         }
-        const lines = [_t("devices.delete_hint", lang) + "\n"];
         const rows: InlineMarkup["inline_keyboard"] = [];
         devices.slice(0, 15).forEach((d, i) => {
           const label = [d.platform, d.deviceModel].filter(Boolean).join(" · ") || d.hwid.slice(0, 12) + "…";
-          lines.push(`${i + 1}. ${label}`);
           rows.push([{ text: `🗑 Удалить: ${label.slice(0, 25)}`, callback_data: `devices:delete:${i}` }]);
         });
         rows.push([{ text: config?.botBackLabel ?? "◀️ В меню", callback_data: "menu:main" }]);
-        await editMessageContent(ctx, lines.join("\n"), { inline_keyboard: rows });
+        await editMessageContent(ctx, _t("devices.delete_hint", lang), { inline_keyboard: rows });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Ошибка";
         await editMessageContent(ctx, `📱 Устройства\n\n❌ ${msg}`, {
@@ -3330,15 +3328,13 @@ composer.on("callback_query:data", async (ctx) => {
             { inline_keyboard: [[{ text: config?.botBackLabel ?? _t("back_to_menu", lang), callback_data: "menu:main" }]] }
           );
         } else {
-          const lines = [_t("devices.deleted", lang) + "\n"];
           const rows: InlineMarkup["inline_keyboard"] = [];
           nextDevices.slice(0, 15).forEach((d, i) => {
             const label = [d.platform, d.deviceModel].filter(Boolean).join(" · ") || d.hwid.slice(0, 12) + "…";
-            lines.push(`${i + 1}. ${label}`);
             rows.push([{ text: `🗑 Удалить: ${label.slice(0, 25)}`, callback_data: `devices:delete:${i}` }]);
           });
           rows.push([{ text: config?.botBackLabel ?? "◀️ В меню", callback_data: "menu:main" }]);
-          await editMessageContent(ctx, lines.join("\n"), { inline_keyboard: rows });
+          await editMessageContent(ctx, _t("devices.deleted", lang), { inline_keyboard: rows });
         }
       } catch (e: unknown) {
         await editMessageContent(ctx, `❌ ${e instanceof Error ? e.message : "Ошибка"}`, {
