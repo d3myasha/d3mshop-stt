@@ -34,6 +34,8 @@ type InlineKeyboardButton =
 
 type InlineKeyboard = { inline_keyboard: InlineKeyboardButton[][] };
 
+type TelegramEntity = { type: string; offset: number; length: number; custom_emoji_id?: string };
+
 function buildReplyMarkup(buttonText?: string, buttonAction?: string, publicAppUrl?: string | null): InlineKeyboard | undefined {
   const label = buttonText?.trim();
   const action = buttonAction?.trim();
@@ -55,15 +57,16 @@ function buildReplyMarkup(buttonText?: string, buttonAction?: string, publicAppU
 /**
  * Отправить текстовое сообщение в Telegram.
  */
-async function sendTelegramMessage(botToken: string, chatId: string, text: string, replyMarkup?: InlineKeyboard): Promise<{ ok: boolean; error?: string }> {
+async function sendTelegramMessage(botToken: string, chatId: string, text: string, replyMarkup?: InlineKeyboard, entities?: TelegramEntity[]): Promise<{ ok: boolean; error?: string }> {
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
     const payload: Record<string, unknown> = {
       chat_id: chatId,
       text,
-      parse_mode: "HTML",
       disable_web_page_preview: true,
     };
+    if (entities?.length) payload.entities = entities;
+    else payload.parse_mode = "HTML";
     if (replyMarkup) payload.reply_markup = replyMarkup;
     const proxy = await getProxyUrl("telegram");
     const res = await proxyFetch(url, {
@@ -90,7 +93,8 @@ async function sendTelegramPhoto(
   buffer: Buffer,
   mimeType: string,
   fileName: string,
-  replyMarkup?: InlineKeyboard
+  replyMarkup?: InlineKeyboard,
+  entities?: TelegramEntity[]
 ): Promise<{ ok: boolean; error?: string }> {
   const url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
   try {
@@ -99,7 +103,8 @@ async function sendTelegramPhoto(
     form.append("photo", new Blob([buffer], { type: mimeType }), fileName || "image");
     if (caption) {
       form.append("caption", caption);
-      form.append("parse_mode", "HTML");
+      if (entities?.length) form.append("caption_entities", JSON.stringify(entities));
+      else form.append("parse_mode", "HTML");
     }
     if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup));
     const proxy = await getProxyUrl("telegram");
@@ -123,7 +128,8 @@ async function sendTelegramDocument(
   buffer: Buffer,
   mimeType: string,
   fileName: string,
-  replyMarkup?: InlineKeyboard
+  replyMarkup?: InlineKeyboard,
+  entities?: TelegramEntity[]
 ): Promise<{ ok: boolean; error?: string }> {
   const url = `https://api.telegram.org/bot${botToken}/sendDocument`;
   try {
@@ -132,7 +138,8 @@ async function sendTelegramDocument(
     form.append("document", new Blob([buffer], { type: mimeType }), fileName || "file");
     if (caption) {
       form.append("caption", caption);
-      form.append("parse_mode", "HTML");
+      if (entities?.length) form.append("caption_entities", JSON.stringify(entities));
+      else form.append("parse_mode", "HTML");
     }
     if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup));
     const proxy = await getProxyUrl("telegram");
@@ -175,9 +182,10 @@ export async function runBroadcast(options: {
   attachment?: BroadcastAttachment;
   buttonText?: string;
   buttonUrl?: string;
+  entities?: TelegramEntity[];
   onProgress?: (p: BroadcastProgress) => void;
 }): Promise<BroadcastResult> {
-  const { channel, subject, message, attachment, buttonText, buttonUrl, onProgress } = options;
+  const { channel, subject, message, attachment, buttonText, buttonUrl, entities, onProgress } = options;
   const result: BroadcastResult = {
     ok: true,
     sentTelegram: 0,
@@ -240,7 +248,8 @@ export async function runBroadcast(options: {
                 attachment.buffer,
                 attachment.mimetype,
                 attachment.originalname,
-                replyMarkup
+                replyMarkup,
+                entities
               )
             : await sendTelegramDocument(
                 botToken,
@@ -249,9 +258,10 @@ export async function runBroadcast(options: {
                 attachment.buffer,
                 attachment.mimetype,
                 attachment.originalname,
-                replyMarkup
+                replyMarkup,
+                entities
               )
-          : await sendTelegramMessage(botToken, tid, message, replyMarkup);
+          : await sendTelegramMessage(botToken, tid, message, replyMarkup, entities);
         if (send.ok) result.sentTelegram++;
         else {
           result.failedTelegram++;
@@ -354,6 +364,7 @@ export function startBroadcastJob(options: {
   attachment?: BroadcastAttachment;
   buttonText?: string;
   buttonUrl?: string;
+  entities?: TelegramEntity[];
   startedByAdmin?: string;
 }): string {
   const jobId = randomUUID();

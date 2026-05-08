@@ -422,7 +422,7 @@ const lastAdminSearch = new Map<number, string>();
 const awaitingAdminBalance = new Map<number, string>();
 // Админ: рассылка — ожидаем текст или фото+подпись, затем канал
 const awaitingBroadcastMessage = new Set<number>();
-type BroadcastPayload = { text: string; photoFileId?: string; buttonText?: string; buttonUrl?: string };
+type BroadcastPayload = { text: string; photoFileId?: string; buttonText?: string; buttonUrl?: string; entities?: CustomEmojiEntity[] };
 const lastBroadcastMessage = new Map<number, string | BroadcastPayload>();
 // Админ: сквады — список для добавления/удаления (clientId + items с uuid/name)
 const lastSquadsForAdd = new Map<number, { clientId: string; items: { uuid: string; name: string }[] }>();
@@ -1829,7 +1829,7 @@ composer.on("callback_query:data", async (ctx) => {
       });
       lastBroadcastMessage.delete(userId);
       try {
-        const result = await api.postBotAdminBroadcast(userId, msg.text, ch, msg.photoFileId, msg.buttonText, msg.buttonUrl);
+        const result = await api.postBotAdminBroadcast(userId, msg.text, ch, msg.photoFileId, msg.buttonText, msg.buttonUrl, msg.entities);
         const text = `✅ Рассылка завершена.\n\nTelegram: отправлено ${result.sentTelegram}, ошибок ${result.failedTelegram}\nEmail: отправлено ${result.sentEmail}, ошибок ${result.failedEmail}${result.errors?.length ? "\n\nОшибки: " + result.errors.slice(0, 3).join("; ") : ""}`;
         await editMessageContent(ctx, text, {
           inline_keyboard: [[{ text: "◀️ В админку", callback_data: "admin:menu" }]],
@@ -4025,7 +4025,8 @@ composer.on("message:photo", async (ctx) => {
   const buttonText = btnMatch?.[1];
   const buttonUrl = btnMatch?.[2];
   const cleanCaption = btnMatch ? caption.replace(btnMatch[0], "").trim() : caption;
-  lastBroadcastMessage.set(userId, { text: cleanCaption || caption, photoFileId: largest.file_id, buttonText, buttonUrl });
+  const customEntities = (ctx.message.caption_entities ?? []).filter((e): e is { type: "custom_emoji"; offset: number; length: number; custom_emoji_id: string } => e.type === "custom_emoji");
+  lastBroadcastMessage.set(userId, { text: cleanCaption || caption, photoFileId: largest.file_id, buttonText, buttonUrl, entities: customEntities.length ? customEntities : undefined });
   await ctx.reply("Кому отправить?", {
     reply_markup: {
       inline_keyboard: [
@@ -4064,7 +4065,8 @@ composer.on("message:text", async (ctx) => {
     const buttonText = btnMatch?.[1];
     const buttonUrl = btnMatch?.[2];
     const cleanText = btnMatch ? text.replace(btnMatch[0], "").trim() : text;
-    lastBroadcastMessage.set(userId, { text: cleanText || text, buttonText, buttonUrl });
+    const customEntities = (ctx.message.entities ?? []).filter((e): e is { type: "custom_emoji"; offset: number; length: number; custom_emoji_id: string } => e.type === "custom_emoji");
+    lastBroadcastMessage.set(userId, { text: cleanText || text, buttonText, buttonUrl, entities: customEntities.length ? customEntities : undefined });
     await ctx.reply("Кому отправить?", {
       reply_markup: {
         inline_keyboard: [

@@ -526,6 +526,7 @@ const broadcastBodySchema = z.object({
   photoFileId: z.string().min(1).optional(),
   buttonText: z.string().max(256).optional(),
   buttonUrl: z.string().max(2048).optional(),
+  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), custom_emoji_id: z.string().optional() })).optional(),
 });
 
 /** Скачать файл из Telegram по file_id. */
@@ -549,7 +550,7 @@ botAdminRouter.post("/broadcast", async (req, res) => {
   if (!admin) return;
   const body = broadcastBodySchema.safeParse(req.body);
   if (!body.success) return res.status(400).json({ message: "Invalid input", errors: body.error.flatten() });
-  const { message, channel, photoFileId, buttonText, buttonUrl } = body.data;
+  const { message, channel, photoFileId, buttonText, buttonUrl, entities } = body.data;
   if (!message.trim() && !photoFileId) {
     return res.status(400).json({ message: "Укажите текст сообщения или приложите фото." });
   }
@@ -575,6 +576,7 @@ botAdminRouter.post("/broadcast", async (req, res) => {
     attachment,
     buttonText,
     buttonUrl,
+    entities,
   });
   return res.json(result);
 });

@@ -2876,6 +2876,7 @@ const broadcastSchema = z.object({
   message: z.string().min(1, "Текст сообщения обязателен").max(4096),
   buttonText: z.string().max(64).optional(),
   buttonUrl: z.string().max(500).optional(),
+  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), custom_emoji_id: z.string().optional() })).optional(),
 });
 
 const broadcastUpload = multer({
@@ -2896,7 +2897,7 @@ adminRouter.post(
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
     }
-    const { channel, subject, message, buttonText, buttonUrl } = parsed.data;
+    const { channel, subject, message, buttonText, buttonUrl, entities } = parsed.data;
     const attachment =
       req.file && req.file.buffer
         ? { buffer: req.file.buffer, mimetype: req.file.mimetype || "application/octet-stream", originalname: req.file.originalname || "file" }
@@ -2911,6 +2912,7 @@ adminRouter.post(
       attachment,
       buttonText,
       buttonUrl,
+      entities,
       startedByAdmin: adminId,
     });
     return res.json({ jobId });

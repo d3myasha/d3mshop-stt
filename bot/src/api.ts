@@ -621,13 +621,14 @@ export async function postBotAdminBroadcast(
   channel: "telegram" | "email" | "both",
   photoFileId?: string,
   buttonText?: string,
-  buttonUrl?: string
+  buttonUrl?: string,
+  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[]
 ): Promise<{ ok: boolean; sentTelegram: number; sentEmail: number; failedTelegram: number; failedEmail: number; errors: string[] }> {
   const botToken = process.env.BOT_TOKEN || "";
   const res = await fetch(`${API_URL}${BOT_ADMIN_BASE}/broadcast`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Telegram-Bot-Token": botToken },
-    body: JSON.stringify({ telegramId, message, channel, photoFileId: photoFileId ?? undefined, buttonText: buttonText ?? undefined, buttonUrl: buttonUrl ?? undefined }),
+    body: JSON.stringify({ telegramId, message, channel, photoFileId: photoFileId ?? undefined, buttonText: buttonText ?? undefined, buttonUrl: buttonUrl ?? undefined, entities: entities ?? undefined }),
   });
   const data = (await res.json().catch(() => ({}))) as {
     ok: boolean;
