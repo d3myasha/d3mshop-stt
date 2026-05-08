@@ -618,7 +618,9 @@ function t(texts: Record<string, string> | null | undefined, key: string): strin
 type CustomEmojiEntity =
   | { type: "custom_emoji"; offset: number; length: number; custom_emoji_id: string }
   | { type: "strikethrough"; offset: number; length: number }
-  | { type: "bold"; offset: number; length: number };
+  | { type: "bold"; offset: number; length: number }
+  | { type: "blockquote"; offset: number; length: number }
+  | { type: "code"; offset: number; length: number };
 
 /** Длина первого символа в UTF-16 (для entity) */
 function firstCharLengthUtf16(s: string): number {
@@ -3612,21 +3614,19 @@ composer.on("callback_query:data", async (ctx) => {
       }
       const linkSite = appUrl ? `${appUrl}/cabinet/register?ref=${encodeURIComponent(client.referralCode)}` : null;
       const linkBot = `https://t.me/${ctx.me?.username ?? "bot"}?start=ref_${client.referralCode}`;
-      // Показываем фактический персональный процент клиента.
-      // Фолбэк на дефолт только если персональный не задан (null/undefined).
-      const p1 = client.referralPercent ?? (config?.defaultReferralPercent ?? 0);
-      const p2 = config?.referralPercentLevel2 ?? 0;
-      const p3 = config?.referralPercentLevel3 ?? 0;
-      let rest = `${_t("referral.title", lang)}\n\n${_t("referral.description", lang)}\n\n`;
-      rest += `${_t("referral.how_it_works", lang)}\n`;
-      rest += `• ${_t("referral.level1", lang, { percent: String(p1) })}\n`;
-      rest += `• ${_t("referral.level2", lang, { percent: String(p2) })}\n`;
-      rest += `• ${_t("referral.level3", lang, { percent: String(p3) })}\n`;
-      rest += `\n${_t("referral.earnings_info", lang)}`;
-      rest += `\n\n${_t("referral.your_links", lang)}`;
-      if (linkSite) rest += `\n\n${_t("referral.site", lang)}\n` + linkSite;
-      rest += `\n\n${_t("referral.bot", lang)}\n` + linkBot;
+      let rest = `${_t("referral.title", lang)}\n${_t("referral.description", lang)}\n${_t("referral.your_links", lang)}\n`;
+      if (linkSite) rest += `${_t("referral.site", lang)}\n${linkSite}\n`;
+      rest += `${_t("referral.bot", lang)}\n${linkBot}`;
       const { text: refText, entities: refEntities } = titleWithEmoji("LINK", rest, config?.botEmojis);
+      const bqLabel = linkSite ? _t("referral.site", lang) : _t("referral.bot", lang);
+      const bqStart = refText.indexOf(bqLabel);
+      if (bqStart >= 0) refEntities.push({ type: "blockquote", offset: bqStart, length: refText.length - bqStart });
+      if (linkSite) {
+        const i = refText.indexOf(linkSite);
+        if (i >= 0) refEntities.push({ type: "code", offset: i, length: linkSite.length });
+      }
+      const j = refText.indexOf(linkBot);
+      if (j >= 0) refEntities.push({ type: "code", offset: j, length: linkBot.length });
       await editMessageContent(ctx, refText, backToMenu(config?.botBackLabel ?? null, innerStyles?.back, innerEmojiIds), refEntities);
       return;
     }
