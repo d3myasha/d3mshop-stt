@@ -526,7 +526,7 @@ const broadcastBodySchema = z.object({
   photoFileId: z.string().min(1).optional(),
   buttonText: z.string().max(256).optional(),
   buttonUrl: z.string().max(2048).optional(),
-  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), custom_emoji_id: z.string().optional() })).optional(),
+  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), url: z.string().optional(), language: z.string().optional(), custom_emoji_id: z.string().optional() })).optional(),
 });
 
 /** Скачать файл из Telegram по file_id. */

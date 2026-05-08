@@ -34,7 +34,7 @@ type InlineKeyboardButton =
 
 type InlineKeyboard = { inline_keyboard: InlineKeyboardButton[][] };
 
-type TelegramEntity = { type: string; offset: number; length: number; custom_emoji_id?: string };
+type TelegramEntity = { type: string; offset: number; length: number; url?: string; language?: string; custom_emoji_id?: string };
 
 function buildReplyMarkup(buttonText?: string, buttonAction?: string, publicAppUrl?: string | null): InlineKeyboard | undefined {
   const label = buttonText?.trim();

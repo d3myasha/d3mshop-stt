@@ -2876,7 +2876,7 @@ const broadcastSchema = z.object({
   message: z.string().min(1, "Текст сообщения обязателен").max(4096),
   buttonText: z.string().max(64).optional(),
   buttonUrl: z.string().max(500).optional(),
-  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), custom_emoji_id: z.string().optional() })).optional(),
+  entities: z.array(z.object({ type: z.string(), offset: z.number(), length: z.number(), url: z.string().optional(), language: z.string().optional(), custom_emoji_id: z.string().optional() })).optional(),
 });
 
 const broadcastUpload = multer({
