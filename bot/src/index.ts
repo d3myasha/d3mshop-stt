@@ -4022,7 +4022,16 @@ composer.on("message:photo", async (ctx) => {
   const largest = photos[photos.length - 1];
   const rawCaption = ctx.message.caption ?? "";
   const caption = rawCaption.trim();
-  const msgEntities: TelegramMessageEntity[] = (ctx.message.caption_entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+  const rawEntities: TelegramMessageEntity[] = (ctx.message.caption_entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+  const emojiRanges = rawEntities.filter(e => e.type === "custom_emoji").map(e => [e.offset, e.offset + e.length] as [number, number]);
+  const msgEntities = rawEntities.filter(e => {
+    if (e.type === "custom_emoji") return true;
+    if (["bold","italic","strikethrough","underline"].includes(e.type)) {
+      const eEnd = e.offset + e.length;
+      for (const [s, end] of emojiRanges) { if (e.offset === s && eEnd === end) return false; }
+    }
+    return true;
+  });
   const btnMatch = caption.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
   const buttonText = btnMatch?.[1];
   const buttonUrl = btnMatch?.[2];
@@ -4063,7 +4072,16 @@ composer.on("message:text", async (ctx) => {
       await ctx.reply("Введите непустой текст сообщения.");
       return;
     }
-    const msgEntities: TelegramMessageEntity[] = (ctx.message.entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+    const rawEntities: TelegramMessageEntity[] = (ctx.message.entities ?? []).map((e) => ({ type: e.type, offset: e.offset, length: e.length, url: ("url" in e ? e.url : undefined) as string | undefined, language: ("language" in e ? e.language : undefined) as string | undefined, custom_emoji_id: ("custom_emoji_id" in e ? e.custom_emoji_id : undefined) as string | undefined }));
+    const emojiRanges = rawEntities.filter(e => e.type === "custom_emoji").map(e => [e.offset, e.offset + e.length] as [number, number]);
+    const msgEntities = rawEntities.filter(e => {
+      if (e.type === "custom_emoji") return true;
+      if (["bold","italic","strikethrough","underline"].includes(e.type)) {
+        const eEnd = e.offset + e.length;
+        for (const [s, end] of emojiRanges) { if (e.offset === s && eEnd === end) return false; }
+      }
+      return true;
+    });
     const btnMatch = text.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
     const buttonText = btnMatch?.[1];
     const buttonUrl = btnMatch?.[2];
