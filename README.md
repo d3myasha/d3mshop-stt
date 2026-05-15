@@ -72,8 +72,8 @@
 apt install git -y
 curl -fsSL https://get.docker.com | sh
 cd /opt
-git clone https://github.com/systemmaster1200-eng/remnawave-STEALTHNET-Bot.git
-cd remnawave-STEALTHNET-Bot
+git clone https://github.com/d3myasha/d3mshop-stt.git
+cd d3mshop-stt
 bash install.sh
 ```
 
